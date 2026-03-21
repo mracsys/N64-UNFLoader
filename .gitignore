@@ -374,3 +374,5 @@ UNFLoader/UNFLoader
 *.a
 *.so
 .directory
+
+.vscode

@@ -12,7 +12,8 @@ CARTLIBFILES	= device.cpp \
             	  device_64drive.cpp \
                   device_everdrive.cpp \
                   device_sc64.cpp \
-                  device_gopher64.cpp
+                  device_gopher64.cpp \
+				  device_wii.cpp
 
 ifeq ($(DEBUG),1)
 	CARTLIBNAME := $(CARTLIBNAME)_d

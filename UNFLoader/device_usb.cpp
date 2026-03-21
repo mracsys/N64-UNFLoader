@@ -192,6 +192,25 @@ USBStatus device_usb_close(USBHandle handle)
 
 
 /*==============================
+    device_usb_close
+    Closes a USB device
+    @param  The USB handle to use
+    @return The USB status
+==============================*/
+
+USBStatus device_usb_setbaudrate(USBHandle handle, int32_t baudrate)
+{
+    #ifdef D2XX
+        return FT_SetBaudRate(handle, baudrate);
+    #else
+        if (ftdi_set_baudrate((ftdi_context*)handle, baudrate) < 0)
+            return USB_INVALID_BAUD_RATE;
+        return USB_OK;
+    #endif
+}
+
+
+/*==============================
     device_usb_write
     Writes data to a USB device
     @param  The USB handle to use

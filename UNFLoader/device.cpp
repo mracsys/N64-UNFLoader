@@ -9,6 +9,7 @@ Passes flashcart communication to more specific functions
 #include "device_everdrive.h"
 #include "device_sc64.h"
 #include "device_gopher64.h"
+#include "device_wii.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -42,6 +43,7 @@ static void device_set_64drive2(CartDevice* cart);
 static void device_set_everdrive(CartDevice* cart);
 static void device_set_sc64(CartDevice* cart);
 static void device_set_gopher64(CartDevice* cart);
+static void device_set_wii(CartDevice* cart);
 
 
 /*********************************
@@ -139,6 +141,24 @@ DeviceError device_find()
         else if (err != DEVICEERR_NOTCART)
             return err;
         else if (local_cart.carttype == CART_SC64)
+            return DEVICEERR_CARTFINDFAIL;
+    }
+
+    // Important to return early as the Wii tests could potentially override,
+    // particularly for Everdrives that don't have any unique identifiers compared
+    // to generic FTDI adapters.
+    if (local_cart.carttype != CART_NONE && local_cart.carttype != CART_WII)
+        return DEVICEERR_OK;
+
+    // Look for a Wii via FTDI USB->serial<-null modem->serial<-USB
+    if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_WII))
+    {
+        DeviceError err = device_test_wii(&local_cart);
+        if (err == DEVICEERR_OK)
+            device_set_wii(&local_cart);
+        else if (err != DEVICEERR_NOTCART)
+            return err;
+        else if (local_cart.carttype == CART_WII)
             return DEVICEERR_CARTFINDFAIL;
     }
 
@@ -264,6 +284,31 @@ static void device_set_gopher64(CartDevice* cart)
     funcPointer_senddata = &device_senddata_gopher64;
     funcPointer_receivedata = &device_receivedata_gopher64;
     funcPointer_close = &device_close_gopher64;
+}
+
+
+/*==============================
+    device_set_wii
+    Marks the "cart" as being a Wii connected via null modem cable
+    @param A pointer to the cart context
+    @param The index of the cart
+==============================*/
+
+static void device_set_wii(CartDevice* cart)
+{
+    // Set cart settings
+    cart->carttype = CART_WII;
+
+    // Set function pointers
+    funcPointer_open = &device_open_wii;
+    funcPointer_maxromsize = &device_maxromsize_wii;
+    funcPointer_rompadding = &device_rompadding_wii;
+    funcPointer_explicitcic = &device_explicitcic_wii;
+    funcPointer_sendrom = &device_sendrom_wii;
+    funcPointer_testdebug = &device_testdebug_wii;
+    funcPointer_senddata = &device_senddata_wii;
+    funcPointer_receivedata = &device_receivedata_wii;
+    funcPointer_close = &device_close_wii;
 }
 
 

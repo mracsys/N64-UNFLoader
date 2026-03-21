@@ -86,5 +86,6 @@
     USBStatus device_usb_getmodemstatus(USBHandle handle, uint32_t* modemstatus);
     USBStatus device_usb_setdtr(USBHandle handle);
     USBStatus device_usb_cleardtr(USBHandle handle);
+    USBStatus device_usb_setbaudrate(USBHandle handle, int32_t baudrate);
 
 #endif
