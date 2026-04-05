@@ -94,6 +94,9 @@ DeviceError device_open_wii(CartDevice* cart)
         return DEVICEERR_PURGEFAIL;
     if (device_usb_setbaudrate(fthandle->handle, 115200) != USB_OK)
         return DEVICEERR_TXREPLYMISMATCH;
+    // Line properties 8N1
+    if (device_usb_setdatacharacteristics(fthandle->handle, 8, 0, 0) != USB_OK)
+        return DEVICEERR_BITMODEFAIL_SYNCFIFO;
 
     // Ok
     return DEVICEERR_OK;

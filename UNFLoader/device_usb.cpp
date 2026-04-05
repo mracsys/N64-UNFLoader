@@ -506,3 +506,25 @@ USBStatus device_usb_cleardtr(USBHandle handle)
         return USB_OK;
     #endif
 }
+
+
+/*==============================
+    device_usb_setdatacharacteristics
+    Sets line properties for the connection
+    @param  The USB handle to use
+    @param  number of data bits
+    @param  number of stop bits
+    @param  enable parity bit
+    @return The USB status
+==============================*/
+
+USBStatus device_usb_setdatacharacteristics(USBHandle handle, uint8_t databits, uint8_t stopbits, uint8_t parity)
+{
+    #ifdef D2XX
+        return FT_SetDataCharacteristics(handle, databits, stopbits, parity);
+    #else
+        if (ftdi_set_line_property((ftdi_context*)handle, databits, stopbits, parity) < 0)
+            return USB_OTHER_ERROR;
+        return USB_OK;
+    #endif
+}

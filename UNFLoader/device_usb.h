@@ -87,5 +87,6 @@
     USBStatus device_usb_setdtr(USBHandle handle);
     USBStatus device_usb_cleardtr(USBHandle handle);
     USBStatus device_usb_setbaudrate(USBHandle handle, int32_t baudrate);
+    USBStatus device_usb_setdatacharacteristics(USBHandle handle, uint8_t databits, uint8_t stopbits, uint8_t parity);
 
 #endif
