@@ -523,7 +523,7 @@ USBStatus device_usb_setdatacharacteristics(USBHandle handle, uint8_t databits, 
     #ifdef D2XX
         return FT_SetDataCharacteristics(handle, databits, stopbits, parity);
     #else
-        if (ftdi_set_line_property((ftdi_context*)handle, databits, stopbits, parity) < 0)
+        if (ftdi_set_line_property((ftdi_context*)handle, (enum ftdi_bits_type)databits, (enum ftdi_stopbits_type)stopbits, (enum ftdi_parity_type)parity) < 0)
             return USB_OTHER_ERROR;
         return USB_OK;
     #endif
