@@ -368,42 +368,25 @@ static DeviceError device_program_flash_sc64(SC64Device *device, uint32_t addres
     device_test_sc64
     Attempts to find SC64 device
     @param  A pointer to the cart context
+    @param  A pointer to a USB device
     @return DEVICEERR_OK if the cart is an SC64,
             DEVICEERR_NOTCART if it isn't,
             Any other device error if problems ocurred
 ==============================*/
 
-DeviceError device_test_sc64(CartDevice *cart)
+DeviceError device_test_sc64(CartDevice *cart, USB_DeviceInfoListNode *device_info)
 {
-    uint32_t device_count;
-
-    // Initialize FTDI
-    if (device_usb_createdeviceinfolist(&device_count) != USB_OK)
-        return DEVICEERR_USBBUSY;
-
-    // Check if the device exists
-    if (device_count == 0)
-        return DEVICEERR_NODEVICES;
-
-    // Allocate storage and get device info list
-    std::unique_ptr<USB_DeviceInfoListNode[]> device_info(new USB_DeviceInfoListNode[device_count]);
-    device_usb_getdeviceinfolist(device_info.get(), &device_count);
-
-    // Search the devices
-    for (uint32_t i = 0; i < device_count; i++)
+    // Look for SC64
+    if (device_info->id == 0x04036014 && memcmp(device_info->description, "SC64", 4) == 0)
     {
-        // Look for SC64
-        if (device_info[i].id == 0x04036014 && memcmp(device_info[i].description, "SC64", 4) == 0)
-        {
-            SC64Device *device = new SC64Device;
-            if (device == NULL)
-                return DEVICEERR_MALLOCFAIL;
-            device->device_number = i;
-            device->handle = NULL;
-            device->packets = std::deque<SC64Packet>();
-            cart->structure = device;
-            return DEVICEERR_OK;
-        }
+        SC64Device *device = new SC64Device;
+        if (device == NULL)
+            return DEVICEERR_MALLOCFAIL;
+        device->device_number = device_info->device_index;
+        device->handle = NULL;
+        device->packets = std::deque<SC64Packet>();
+        cart->structure = device;
+        return DEVICEERR_OK;
     }
 
     // Could not find the flashcart

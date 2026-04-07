@@ -106,6 +106,7 @@ USBStatus device_usb_getdeviceinfolist(USB_DeviceInfoListNode* list, uint32_t* n
             memcpy(&list[i].serial, ftdidevs[i].SerialNumber, sizeof(char)*16);
             memcpy(&list[i].description, ftdidevs[i].Description, sizeof(char)*64);
             list[i].handle = ftdidevs[i].ftHandle;
+            list[i].device_index = i;
         }
 
         // Cleanup
@@ -133,6 +134,7 @@ USBStatus device_usb_getdeviceinfolist(USB_DeviceInfoListNode* list, uint32_t* n
             list[count].locid = 0;
             memcpy(&list[count].serial, manufacturer, sizeof(char)*16);
             memcpy(&list[count].description, description, sizeof(char)*64);
+            list[count].device_index = count;
 
             count++;
         }

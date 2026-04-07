@@ -2,6 +2,7 @@
 #define __DEVICE_64DRIVE_HEADER
 
     #include "device.h"
+    #include "device_usb.h"
     #include <stdbool.h>
 
 
@@ -34,8 +35,8 @@
             Function Prototypes
     *********************************/
 
-    DeviceError device_test_64drive1(CartDevice* cart);
-    DeviceError device_test_64drive2(CartDevice* cart);
+    DeviceError device_test_64drive1(CartDevice* cart, USB_DeviceInfoListNode* device_info);
+    DeviceError device_test_64drive2(CartDevice* cart, USB_DeviceInfoListNode* device_info);
     DeviceError device_open_64drive(CartDevice* cart);
     DeviceError device_sendrom_64drive(CartDevice* cart, byte* rom, uint32_t size);
     uint32_t    device_maxromsize_64drive();

@@ -61,6 +61,7 @@
         char serial[16];
         char description[64];
         USBHandle handle;
+        uint32_t device_index;
     } USB_DeviceInfoListNode;
 
 

@@ -35,45 +35,29 @@ DeviceError device_sendcmd_64drive(N64DriveHandle* cart, uint8_t command, bool r
     device_test_64drive1
     Checks whether the device passed as an argument is 64Drive HW1
     @param  A pointer to the cart context
+    @param  A pointer to a USB device
     @return DEVICEERR_OK if the cart is a 64Drive HW1, 
             DEVICEERR_NOTCART if it isn't,
             Any other device error if problems ocurred
 ==============================*/
 
-DeviceError device_test_64drive1(CartDevice* cart)
+DeviceError device_test_64drive1(CartDevice* cart, USB_DeviceInfoListNode *device_info)
 {
-    uint32_t device_count;
-    USB_DeviceInfoListNode* device_info;
-
-    // Initialize FTD
-    if (device_usb_createdeviceinfolist(&device_count) != USB_OK)
-        return DEVICEERR_USBBUSY;
-
-    // Check if the device exists
-    if (device_count == 0)
-        return DEVICEERR_NODEVICES;
-
-    // Allocate storage and get device info list
-    device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode)*device_count);
-    device_usb_getdeviceinfolist(device_info, &device_count);
-
-    // Search the devices
-    for (uint32_t i=0; i<device_count; i++)
+    // Look for 64drive HW1 (FT2232H Asynchronous FIFO mode)
+    if ((
+        strcmp(device_info->description, "64drive USB device A") == 0 ||
+        strcmp(device_info->description, "64drive USB device") == 0
+    ) &&
+        device_info->id == 0x4036010)
     {
-        // Look for 64drive HW1 (FT2232H Asynchronous FIFO mode)
-        if ((strcmp(device_info[i].description, "64drive USB device A") == 0 || strcmp(device_info[i].description, "64drive USB device") == 0) && device_info[i].id == 0x4036010)
-        {
-            N64DriveHandle* fthandle = (N64DriveHandle*) malloc(sizeof(N64DriveHandle));
-            free(device_info);
-            fthandle->device_index = i;
-            fthandle->synchronous = false;
-            cart->structure = fthandle;
-            return DEVICEERR_OK;
-        }
+        N64DriveHandle* fthandle = (N64DriveHandle*) malloc(sizeof(N64DriveHandle));
+        fthandle->device_index = device_info->device_index;
+        fthandle->synchronous = false;
+        cart->structure = fthandle;
+        return DEVICEERR_OK;
     }
 
     // Could not find the flashcart
-    free(device_info);
     return DEVICEERR_NOTCART;
 }
 
@@ -82,45 +66,25 @@ DeviceError device_test_64drive1(CartDevice* cart)
     device_test_64drive2
     Checks whether the device passed as an argument is 64Drive HW2
     @param  A pointer to the cart context
+    @param  A pointer to a USB device
     @return DEVICEERR_OK if the cart is a 64Drive HW2, 
             DEVICEERR_NOTCART if it isn't,
             Any other device error if problems ocurred
 ==============================*/
 
-DeviceError device_test_64drive2(CartDevice* cart)
+DeviceError device_test_64drive2(CartDevice* cart, USB_DeviceInfoListNode* device_info)
 {
-    uint32_t device_count;
-    USB_DeviceInfoListNode* device_info;
-
-    // Initialize FTD
-    if (device_usb_createdeviceinfolist(&device_count) != USB_OK)
-        return DEVICEERR_USBBUSY;
-
-    // Check if the device exists
-    if (device_count == 0)
-        return DEVICEERR_NODEVICES;
-
-    // Allocate storage and get device info list
-    device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode)*device_count);
-    device_usb_getdeviceinfolist(device_info, &device_count);
-
-    // Search the devices
-    for (uint32_t i=0; i<device_count; i++)
+    // Look for 64drive HW1 (FT2232H Asynchronous FIFO mode)
+    if (strcmp(device_info->description, "64drive USB device") == 0 && device_info->id == 0x4036014)
     {
-        // Look for 64drive HW1 (FT2232H Asynchronous FIFO mode)
-        if (strcmp(device_info[i].description, "64drive USB device") == 0 && device_info[i].id == 0x4036014)
-        {
-            N64DriveHandle* fthandle = (N64DriveHandle*) malloc(sizeof(N64DriveHandle));
-            free(device_info);
-            fthandle->device_index = i;
-            fthandle->synchronous = true;
-            cart->structure = fthandle;
-            return DEVICEERR_OK;
-        }
+        N64DriveHandle* fthandle = (N64DriveHandle*) malloc(sizeof(N64DriveHandle));
+        fthandle->device_index = device_info->device_index;
+        fthandle->synchronous = true;
+        cart->structure = fthandle;
+        return DEVICEERR_OK;
     }
 
     // Could not find the flashcart
-    free(device_info);
     return DEVICEERR_NOTCART;
 }
 

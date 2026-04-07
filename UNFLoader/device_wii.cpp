@@ -17,55 +17,34 @@ typedef struct
     device_test_wii
     Checks whether the device passed as an argument is a Wii
     @param  A pointer to the cart context
-    @param  The index of the cart
+    @param  A pointer to a USB device
     @return DEVICEERR_OK if the cart is a Wii,
             DEVICEERR_NOTCART if it isn't,
             Any other device error if problems ocurred
 ==============================*/
 
-DeviceError device_test_wii(CartDevice* cart)
+DeviceError device_test_wii(CartDevice* cart, USB_DeviceInfoListNode* device_info)
 {
-    uint32_t device_count;
-    USB_DeviceInfoListNode* device_info;
-
-    // Initialize FTD
-    if (device_usb_createdeviceinfolist(&device_count) != USB_OK)
-        return DEVICEERR_USBBUSY;
-
-    // Check if the device exists
-    if (device_count == 0)
-        return DEVICEERR_NODEVICES;
-
-    // Allocate storage and get device info list
-    device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode)*device_count);
-    device_usb_getdeviceinfolist(device_info, &device_count);
-
-    // Search the devices
-    for (uint32_t i=0; i<device_count; i++)
-    {
-        // Look for a single channel FTDI USB->serial adapter that isn't a flashcart
-        if
+    // Look for a single channel FTDI USB->serial adapter that isn't a flashcart
+    if
+    (
+        strcmp(device_info->description, "FT245R USB FIFO") != 0 &&    // Everdrive, may have false positives
+        strcmp(device_info->description, "64drive USB device") != 0 && // 64drive
+        strcmp(device_info->description, "SC64") != 0 &&               // Summercart64
         (
-            strcmp(device_info[i].description, "FT245R USB FIFO") != 0 &&    // Everdrive, may have false positives
-            strcmp(device_info[i].description, "64drive USB device") != 0 && // 64drive
-            strcmp(device_info[i].description, "SC64") != 0 &&               // Summercart64
-            (
-                device_info[i].id == 0x04036001 || // FT232R (used by Everdrive)
-                device_info[i].id == 0x04036014 || // FT232H (used by 64drive HW2 and Summercart)
-                device_info[i].id == 0x04036015    // FT230X
-            )
+            device_info->id == 0x04036001 || // FT232R (used by Everdrive)
+            device_info->id == 0x04036014 || // FT232H (used by 64drive HW2 and Summercart)
+            device_info->id == 0x04036015    // FT230X
         )
-        {
-            WiiHandle* fthandle = (WiiHandle*)malloc(sizeof(WiiHandle));
-            free(device_info);
-            fthandle->device_index = i;
-            cart->structure = fthandle;
-            return DEVICEERR_OK;
-        }
+    )
+    {
+        WiiHandle* fthandle = (WiiHandle*)malloc(sizeof(WiiHandle));
+        fthandle->device_index = device_info->device_index;
+        cart->structure = fthandle;
+        return DEVICEERR_OK;
     }
 
     // Could not find the flashcart
-    free(device_info);
     return DEVICEERR_NOTCART;
 }
 

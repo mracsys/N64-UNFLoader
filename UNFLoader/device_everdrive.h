@@ -2,13 +2,14 @@
 #define __DEVICE_EVERDRIVE_HEADER
 
     #include "device.h"
+    #include "device_usb.h"
 
 
     /*********************************
             Function Prototypes
     *********************************/
 
-    DeviceError device_test_everdrive(CartDevice* cart);
+    DeviceError device_test_everdrive(CartDevice* cart, USB_DeviceInfoListNode* device_info);
     DeviceError device_open_everdrive(CartDevice* cart);
     DeviceError device_sendrom_everdrive(CartDevice* cart, byte* rom, uint32_t size);
     uint32_t    device_maxromsize_everdrive();

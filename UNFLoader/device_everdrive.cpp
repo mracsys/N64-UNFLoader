@@ -25,114 +25,85 @@ typedef struct
     device_test_everdrive
     Checks whether the device passed as an argument is EverDrive
     @param  A pointer to the cart context
-    @param  The index of the cart
+    @param  A pointer to a USB device
     @return DEVICEERR_OK if the cart is an Everdive, 
             DEVICEERR_NOTCART if it isn't,
             Any other device error if problems ocurred
 ==============================*/
 
-DeviceError device_test_everdrive(CartDevice* cart)
+DeviceError device_test_everdrive(CartDevice* cart, USB_DeviceInfoListNode *device_info)
 {
-    uint32_t device_count;
-    USB_DeviceInfoListNode* device_info;
-
-    // Initialize FTD
-    if (device_usb_createdeviceinfolist(&device_count) != USB_OK)
-        return DEVICEERR_USBBUSY;
-
-    // Check if the device exists
-    if (device_count == 0)
-        return DEVICEERR_NODEVICES;
-
-    // Allocate storage and get device info list
-    device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode)*device_count);
-    device_usb_getdeviceinfolist(device_info, &device_count);
-
-    // Search the devices
-    for (uint32_t i=0; i<device_count; i++)
+    // Look for an EverDrive
+    if (strcmp(device_info->description, "FT245R USB FIFO") == 0 && device_info->id == 0x04036001)
     {
-        // Look for an EverDrive
-        if (strcmp(device_info[i].description, "FT245R USB FIFO") == 0 && device_info[i].id == 0x04036001)
+        USBHandle temphandle;
+        uint32_t bytes_written;
+        uint32_t bytes_read;
+        char send_buff[16];
+        char recv_buff[16];
+        memset(send_buff, 0, 16);
+        memset(recv_buff, 0, 16);
+
+        // If we don't have a ROM, we probably just want debug mode, so assume that this is an ED
+        if (device_getrom() == NULL)
         {
-            USBHandle temphandle;
-            uint32_t bytes_written;
-            uint32_t bytes_read;
-            char send_buff[16];
-            char recv_buff[16];
-            memset(send_buff, 0, 16);
-            memset(recv_buff, 0, 16);
+            ED64Handle* fthandle = (ED64Handle*)malloc(sizeof(ED64Handle));
+            fthandle->device_index = device_info->device_index;
+            cart->structure = fthandle;
+            return DEVICEERR_OK;
+        }
 
-            // If we don't have a ROM, we probably just want debug mode, so assume that this is an ED
-            if (device_getrom() == NULL)
-            {
-                ED64Handle* fthandle = (ED64Handle*)malloc(sizeof(ED64Handle));
-                free(device_info);
-                fthandle->device_index = i;
-                cart->structure = fthandle;
-                return DEVICEERR_OK;
-            }
+        // Define the command to send
+        send_buff[0] = 'c';
+        send_buff[1] = 'm';
+        send_buff[2] = 'd';
+        send_buff[3] = 't';
 
-            // Define the command to send
-            send_buff[0] = 'c';
-            send_buff[1] = 'm';
-            send_buff[2] = 'd';
-            send_buff[3] = 't';
+        // Open the device
+        if (device_usb_open(device_info->device_index, &temphandle) != USB_OK || !temphandle)
+        {
+            return DEVICEERR_CANTOPEN;
+        }
 
-            // Open the device
-            if (device_usb_open(i, &temphandle) != USB_OK || !temphandle)
-            {
-                free(device_info);
-                return DEVICEERR_CANTOPEN;
-            }
+        // Initialize the USB
+        if (device_usb_resetdevice(temphandle) != USB_OK)
+        {
+            return DEVICEERR_RESETFAIL;
+        }
+        if (device_usb_settimeouts(temphandle, 500, 500) != USB_OK)
+        {
+            return DEVICEERR_TIMEOUTSETFAIL;
+        }
+        if (device_usb_purge(temphandle, USB_PURGE_RX | USB_PURGE_TX) != USB_OK)
+        {
+            return DEVICEERR_PURGEFAIL;
+        }
 
-            // Initialize the USB
-            if (device_usb_resetdevice(temphandle) != USB_OK)
-            {
-                free(device_info);
-                return DEVICEERR_RESETFAIL;
-            }
-            if (device_usb_settimeouts(temphandle, 500, 500) != USB_OK)
-            {
-                free(device_info);
-                return DEVICEERR_TIMEOUTSETFAIL;
-            }
-            if (device_usb_purge(temphandle, USB_PURGE_RX | USB_PURGE_TX) != USB_OK)
-            {
-                free(device_info);
-                return DEVICEERR_PURGEFAIL;
-            }
+        // Send the test command
+        if (device_usb_write(temphandle, send_buff, 16, &bytes_written) != USB_OK)
+        {
+            return DEVICEERR_WRITEFAIL;
+        }
+        if (device_usb_read(temphandle, recv_buff, 16, &bytes_read) != USB_OK)
+        {
+            return DEVICEERR_READFAIL;
+        }
+        if (device_usb_close(temphandle) != USB_OK)
+        {
+            return DEVICEERR_CLOSEFAIL;
+        }
 
-            // Send the test command
-            if (device_usb_write(temphandle, send_buff, 16, &bytes_written) != USB_OK)
-            {
-                free(device_info);
-                return DEVICEERR_WRITEFAIL;
-            }
-            if (device_usb_read(temphandle, recv_buff, 16, &bytes_read) != USB_OK)
-            {
-                free(device_info);
-                return DEVICEERR_READFAIL;
-            }
-            if (device_usb_close(temphandle) != USB_OK)
-            {
-                free(device_info);
-                return DEVICEERR_CLOSEFAIL;
-            }
-
-            // Check if the EverDrive responded correctly
-            if (recv_buff[3] == 'r')
-            {
-                ED64Handle* fthandle = (ED64Handle*) malloc(sizeof(ED64Handle));
-                free(device_info);
-                fthandle->device_index = i;
-                cart->structure = fthandle;
-                return DEVICEERR_OK;
-            }
+        // Check if the EverDrive responded correctly
+        if (recv_buff[3] == 'r')
+        {
+            ED64Handle* fthandle = (ED64Handle*) malloc(sizeof(ED64Handle));
+            fthandle->device_index = device_info->device_index;
+            cart->structure = fthandle;
+            return DEVICEERR_OK;
         }
     }
 
     // Could not find the flashcart
-    free(device_info);
     return DEVICEERR_NOTCART;
 }
 

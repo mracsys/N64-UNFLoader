@@ -10,6 +10,7 @@ Passes flashcart communication to more specific functions
 #include "device_sc64.h"
 #include "device_gopher64.h"
 #include "device_wii.h"
+#include "device_usb.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -75,14 +76,14 @@ void device_initialize()
     local_cart.protocol = PROTOCOL_VERSION1;
 }
 
-
 /*==============================
-    device_find
-    Finds the flashcart plugged in to USB
+    device_connect (overloaded)
+    Connects to a specific USB device as a flashcart
+    @param A pointer to a USB device
     @return The DeviceError enum
 ==============================*/
 
-DeviceError device_find()
+DeviceError device_connect(USB_DeviceInfoListNode* device_info)
 {
     // Look for Gopher64
     if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_GOPHER64))
@@ -99,7 +100,7 @@ DeviceError device_find()
     // Look for 64drive HW1 (FT2232H Asynchronous FIFO mode)
     if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_64DRIVE1))
     {
-        DeviceError err = device_test_64drive1(&local_cart);
+        DeviceError err = device_test_64drive1(&local_cart, device_info);
         if (err == DEVICEERR_OK)
             device_set_64drive1(&local_cart);
         else if (err != DEVICEERR_NOTCART)
@@ -111,7 +112,7 @@ DeviceError device_find()
     // Look for 64drive HW2 (FT2232H Asynchronous FIFO mode)
     if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_64DRIVE2))
     {
-        DeviceError err = device_test_64drive2(&local_cart);
+        DeviceError err = device_test_64drive2(&local_cart, device_info);
         if (err == DEVICEERR_OK)
             device_set_64drive2(&local_cart);
         else if (err != DEVICEERR_NOTCART)
@@ -123,7 +124,7 @@ DeviceError device_find()
     // Look for an EverDrive
     if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_EVERDRIVE))
     {
-        DeviceError err = device_test_everdrive(&local_cart);
+        DeviceError err = device_test_everdrive(&local_cart, device_info);
         if (err == DEVICEERR_OK)
             device_set_everdrive(&local_cart);
         else if (err != DEVICEERR_NOTCART)
@@ -135,7 +136,7 @@ DeviceError device_find()
     // Look for SC64
     if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_SC64))
     {
-        DeviceError err = device_test_sc64(&local_cart);
+        DeviceError err = device_test_sc64(&local_cart, device_info);
         if (err == DEVICEERR_OK)
             device_set_sc64(&local_cart);
         else if (err != DEVICEERR_NOTCART)
@@ -153,7 +154,7 @@ DeviceError device_find()
     // Look for a Wii via FTDI USB->serial<-null modem->serial<-USB
     if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_WII))
     {
-        DeviceError err = device_test_wii(&local_cart);
+        DeviceError err = device_test_wii(&local_cart, device_info);
         if (err == DEVICEERR_OK)
             device_set_wii(&local_cart);
         else if (err != DEVICEERR_NOTCART)
@@ -166,6 +167,88 @@ DeviceError device_find()
     if (local_cart.carttype == CART_NONE)
         return DEVICEERR_CARTFINDFAIL;
     return DEVICEERR_OK;
+}
+
+/*==============================
+    device_connect (overloaded)
+    Connects to a specific USB device as a flashcart
+    @param USB combined vendor/product IDs
+    @param USB device serial number
+    @return The DeviceError enum
+==============================*/
+
+DeviceError device_connect(uint32_t id, char *serial)
+{
+    uint32_t device_count;
+    USB_DeviceInfoListNode* device_info;
+
+    // Initialize FTD
+    if (device_usb_createdeviceinfolist(&device_count) != USB_OK)
+        return DEVICEERR_USBBUSY;
+
+    // Check if the device exists
+    if (device_count == 0)
+        return DEVICEERR_NODEVICES;
+
+    // Allocate storage and get device info list
+    device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode)*device_count);
+    device_usb_getdeviceinfolist(device_info, &device_count);
+
+    // Search the devices
+    USB_DeviceInfoListNode* device = NULL;
+    for (uint32_t i=0; i<device_count; i++)
+    {
+        if (device_info[i].id == id && memcmp(serial, device_info[i].serial, sizeof(device_info[i].serial))) {
+            device = &device_info[i];
+            break;
+        }
+    }
+
+    if (device != NULL) {
+        DeviceError err = device_connect(device);
+        free(device_info);
+        return err;
+    } else {
+        free(device_info);
+        return DEVICEERR_CARTFINDFAIL;
+    }
+}
+
+/*==============================
+    device_find
+    Finds the flashcart plugged in to USB
+    @return The DeviceError enum
+==============================*/
+
+DeviceError device_find()
+{
+    uint32_t device_count;
+    USB_DeviceInfoListNode* device_info;
+
+    // Initialize FTD
+    if (device_usb_createdeviceinfolist(&device_count) != USB_OK)
+        return DEVICEERR_USBBUSY;
+
+    // Check if the device exists
+    if (device_count == 0)
+        return DEVICEERR_NODEVICES;
+
+    // Allocate storage and get device info list
+    device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode)*device_count);
+    device_usb_getdeviceinfolist(device_info, &device_count);
+
+    // Search the devices
+    for (uint32_t i=0; i<device_count; i++)
+    {
+        DeviceError err = device_connect(&device_info[i]);
+        if (err == DEVICEERR_OK) {
+            free(device_info);
+            return err;
+        }
+    }
+
+    free(device_info);
+    return DEVICEERR_CARTFINDFAIL;
 }
 
 
