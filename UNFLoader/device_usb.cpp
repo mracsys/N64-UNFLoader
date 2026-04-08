@@ -183,6 +183,9 @@ USBStatus device_usb_open(int32_t devnumber, USBHandle* handle)
 
 USBStatus device_usb_close(USBHandle handle)
 {
+    // Handle transition back to OS control for libftdi
+    if (device_usb_resetdevice(handle) != USB_OK)
+        return USB_OTHER_ERROR;
     #ifdef D2XX
         return FT_Close(handle);
     #else
