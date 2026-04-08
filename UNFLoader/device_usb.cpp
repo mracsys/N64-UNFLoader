@@ -132,7 +132,7 @@ USBStatus device_usb_getdeviceinfolist(USB_DeviceInfoListNode* list, uint32_t* n
             list[count].type = 0;
             list[count].id = (0x0403 << 16) | desc.idProduct;
             list[count].locid = 0;
-            memcpy(&list[count].serial, manufacturer, sizeof(char)*16);
+            memcpy(&list[count].serial, id, sizeof(char)*16);
             memcpy(&list[count].description, description, sizeof(char)*64);
             list[count].device_index = count;
 
@@ -183,9 +183,6 @@ USBStatus device_usb_open(int32_t devnumber, USBHandle* handle)
 
 USBStatus device_usb_close(USBHandle handle)
 {
-    // Handle transition back to OS control for libftdi
-    if (device_usb_resetdevice(handle) != USB_OK)
-        return USB_OTHER_ERROR;
     #ifdef D2XX
         return FT_Close(handle);
     #else

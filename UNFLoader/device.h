@@ -139,6 +139,12 @@
         void*       structure;
     } CartDevice;
 
+    typedef struct {
+        uint16_t vid;
+        uint16_t pid;
+        char     serial[16];
+        char     description[64];
+    } SerialDevice;
 
     /*********************************
             Function Prototypes
@@ -147,6 +153,7 @@
     // Main device functions
     void        device_initialize();
     DeviceError device_find();
+    void        device_list(SerialDevice *devices, uint32_t *device_count);
     DeviceError device_connect(uint32_t id, char *serial);
     DeviceError device_open();
     uint32_t    device_getmaxromsize();

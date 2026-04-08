@@ -214,6 +214,46 @@ DeviceError device_connect(uint32_t id, char *serial)
     }
 }
 
+
+/*==============================
+    device_list
+    Returns device properties
+    for all compatible connected
+    USB devices
+    @param Pointer to save the device list to
+    @param Pointer to save the list size to
+    @return The DeviceError enum
+==============================*/
+
+void device_list(SerialDevice *devices, uint32_t *device_count) {
+    USB_DeviceInfoListNode* device_info;
+
+    // Initialize FTD
+    if (device_usb_createdeviceinfolist(device_count) != USB_OK)
+        return;
+
+    // Check if the device exists
+    if (device_count == 0 || devices == NULL)
+        return;
+
+    // Allocate storage and get device info list
+    device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode) * (*device_count));
+    devices = (SerialDevice*) malloc(sizeof(SerialDevice) * (*device_count));
+    device_usb_getdeviceinfolist(device_info, device_count);
+
+    // Search the devices
+    for (uint32_t i=0; i<*device_count; i++)
+    {
+        devices[i].vid = (uint16_t)(device_info[i].id >> 16);
+        devices[i].pid = (uint16_t)(device_info[i].id & 0xFFFF);
+        memcpy(devices[i].serial, device_info[i].serial, sizeof(device_info[i].serial));
+        memcpy(devices[i].description, device_info[i].description, sizeof(device_info[i].description));
+    }
+
+    free(device_info);
+}
+
+
 /*==============================
     device_find
     Finds the flashcart plugged in to USB
