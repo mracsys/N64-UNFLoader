@@ -77,13 +77,13 @@ void device_initialize()
 }
 
 /*==============================
-    device_connect (overloaded)
+    device_connect_id
     Connects to a specific USB device as a flashcart
     @param A pointer to a USB device
     @return The DeviceError enum
 ==============================*/
 
-DeviceError device_connect(USB_DeviceInfoListNode* device_info)
+DeviceError device_connect_id(USB_DeviceInfoListNode* device_info)
 {
     // Look for Gopher64
     if ((local_cart.carttype == CART_NONE || local_cart.carttype == CART_GOPHER64))
@@ -170,7 +170,7 @@ DeviceError device_connect(USB_DeviceInfoListNode* device_info)
 }
 
 /*==============================
-    device_connect (overloaded)
+    device_connect
     Connects to a specific USB device as a flashcart
     @param USB combined vendor/product IDs
     @param USB device serial number
@@ -205,7 +205,7 @@ DeviceError device_connect(uint32_t id, char *serial)
     }
 
     if (device != NULL) {
-        DeviceError err = device_connect(device);
+        DeviceError err = device_connect_id(device);
         free(device_info);
         return err;
     } else {
@@ -240,7 +240,7 @@ DeviceError device_find()
     // Search the devices
     for (uint32_t i=0; i<device_count; i++)
     {
-        DeviceError err = device_connect(&device_info[i]);
+        DeviceError err = device_connect_id(&device_info[i]);
         if (err == DEVICEERR_OK) {
             free(device_info);
             return err;
