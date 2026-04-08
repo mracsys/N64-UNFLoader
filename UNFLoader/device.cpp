@@ -228,7 +228,7 @@ DeviceError device_connect(uint32_t id, char *serial)
 void device_list(SerialDevice *devices, uint32_t *device_count) {
     USB_DeviceInfoListNode* device_info;
 
-    // Initialize FTD
+    // Initialize FTDI
     if (device_usb_createdeviceinfolist(device_count) != USB_OK)
         return;
 
@@ -238,7 +238,6 @@ void device_list(SerialDevice *devices, uint32_t *device_count) {
 
     // Allocate storage and get device info list
     device_info = (USB_DeviceInfoListNode*) malloc(sizeof(USB_DeviceInfoListNode) * (*device_count));
-    devices = (SerialDevice*) malloc(sizeof(SerialDevice) * (*device_count));
     device_usb_getdeviceinfolist(device_info, device_count);
 
     // Search the devices
